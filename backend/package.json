@@ -1,0 +1,21 @@
+{
+  "name": "community-map-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend API cho Bản đồ Cộng đồng & Báo cáo Sự cố Địa phương",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node src/config/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.18.2",
+    "uuid": "^10.0.0"
+  }
+}
