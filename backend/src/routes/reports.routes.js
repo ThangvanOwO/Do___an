@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
 
     res.json({
       success: true, message: 'Lấy danh sách báo cáo thành công.',
-      data: { reports: result, pagination: { total, page: parseInt(page), limit: parseInt(limit), total_pages: Math.ceil(total / parseInt(limit)) } }
+      data: result
     });
   } catch (error) {
     console.error('Get reports error:', error);
@@ -128,7 +128,7 @@ router.get('/nearby', async (req, res) => {
       FROM reports r
       LEFT JOIN users u ON r.user_id = u.user_id
       LEFT JOIN categories c ON r.category_id = c.category_id
-      WHERE r.status != 'rejected'
+      WHERE r.status != 'cancelled'
       HAVING distance_km <= ?
       ORDER BY distance_km ASC LIMIT 50
     `, [parseFloat(lat), parseFloat(lng), parseFloat(lat), parseFloat(radius)]);
@@ -147,21 +147,33 @@ router.get('/map-data', async (req, res) => {
   try {
     const db = getDb();
     const { status, category_id } = req.query;
-    let where = "WHERE r.status != 'rejected'";
+    let where = "WHERE r.status != 'cancelled'";
     const params = [];
 
     if (status) { where = 'WHERE r.status = ?'; params.push(status); }
     if (category_id) { where += ' AND r.category_id = ?'; params.push(category_id); }
 
     const [reports] = await db.query(`
-      SELECT r.report_id, r.title, r.latitude, r.longitude, r.status,
-             r.created_at, r.image_url,
-             c.name as category_name, c.priority_level
+      SELECT r.report_id, r.title, r.description, r.latitude, r.longitude, r.status,
+             r.created_at, c.name as category_name, c.priority_level
       FROM reports r LEFT JOIN categories c ON r.category_id = c.category_id
       ${where} ORDER BY r.created_at DESC
     `, params);
 
-    res.json({ success: true, message: `Lấy ${reports.length} điểm trên bản đồ.`, data: reports });
+    // Lấy ảnh đầu tiên cho mỗi report
+    const result = [];
+    for (const report of reports) {
+      const [images] = await db.query(
+        'SELECT image_url FROM report_images WHERE report_id = ? LIMIT 1', 
+        [report.report_id]
+      );
+      result.push({ 
+        ...report, 
+        image_url: images.length > 0 ? images[0].image_url : null 
+      });
+    }
+
+    res.json({ success: true, message: `Lấy ${result.length} điểm trên bản đồ.`, data: result });
   } catch (error) {
     console.error('Get map data error:', error);
     res.status(500).json({ success: false, message: 'Lỗi server.' });
@@ -216,11 +228,10 @@ router.post('/', authenticate, (req, res) => {
       if (catRows.length === 0) return res.status(400).json({ success: false, message: 'Danh mục không hợp lệ.' });
 
       const report_id = uuidv4();
-      const mainImage = req.files && req.files.length > 0 ? `/uploads/reports/${req.files[0].filename}` : null;
 
       await db.query(
-        `INSERT INTO reports (report_id, title, description, image_url, latitude, longitude, status, user_id, category_id) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-        [report_id, title, description, mainImage, parseFloat(latitude), parseFloat(longitude), req.user.user_id, category_id]
+        `INSERT INTO reports (report_id, title, description, latitude, longitude, status, user_id, category_id) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        [report_id, title, description, parseFloat(latitude), parseFloat(longitude), req.user.user_id, category_id]
       );
 
       if (req.files && req.files.length > 0) {
@@ -256,7 +267,7 @@ router.put('/:id', authenticate, async (req, res) => {
     if (report.user_id !== req.user.user_id && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Bạn không có quyền chỉnh sửa báo cáo này.' });
     }
-    if (report.status === 'resolved' && req.user.role !== 'admin') {
+    if (report.status === 'completed' && req.user.role !== 'admin') {
       return res.status(400).json({ success: false, message: 'Không thể chỉnh sửa báo cáo đã hoàn thành.' });
     }
 
@@ -290,7 +301,8 @@ router.patch('/:id/status', authenticate, authorize('admin', 'staff'), async (re
     const { new_status } = req.body;
     if (!new_status) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp trạng thái mới (new_status).' });
 
-    const validStatuses = ['pending', 'confirmed', 'in_progress', 'resolved', 'rejected'];
+    // Status hợp lệ theo CSDL: pending, in_progress, completed, cancelled
+    const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
     if (!validStatuses.includes(new_status)) {
       return res.status(400).json({ success: false, message: `Trạng thái không hợp lệ. Các giá trị cho phép: ${validStatuses.join(', ')}` });
     }
@@ -307,7 +319,7 @@ router.patch('/:id/status', authenticate, authorize('admin', 'staff'), async (re
     await db.query('INSERT INTO report_logs (log_id, report_id, changed_by, old_status, new_status) VALUES (?, ?, ?, ?, ?)',
       [log_id, req.params.id, req.user.user_id, old_status, new_status]);
 
-    const statusLabels = { pending: 'Chờ tiếp nhận', confirmed: 'Đã xác nhận', in_progress: 'Đang xử lý', resolved: 'Đã hoàn thành', rejected: 'Đã từ chối' };
+    const statusLabels = { pending: 'Chờ tiếp nhận', in_progress: 'Đang xử lý', completed: 'Đã hoàn thành', cancelled: 'Đã hủy' };
 
     res.json({
       success: true, message: `Cập nhật trạng thái thành công: ${statusLabels[old_status]} → ${statusLabels[new_status]}`,

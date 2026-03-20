@@ -49,7 +49,14 @@ router.post('/register', async (req, res) => {
 
     const user_id = uuidv4();
     const password_hash = bcrypt.hashSync(password, 10);
-    const userRole = (role === 'admin' || role === 'staff') ? role : 'citizen';
+    
+    // Role: 'citizen', 'admin', 'staff'
+    let userRole = 'citizen';
+    if (role === 'admin') {
+      userRole = 'admin';
+    } else if (role === 'staff') {
+      userRole = 'staff';
+    }
 
     await db.query(
       'INSERT INTO users (user_id, full_name, phone_number, password_hash, role) VALUES (?, ?, ?, ?, ?)',

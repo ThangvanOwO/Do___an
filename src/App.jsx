@@ -11,6 +11,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminReports from './pages/AdminReports';
 import ProfilePage from './pages/ProfilePage';
 import FloodReportPage from './pages/FloodReportPage';
+import DashboardReactPage from './pages/DashboardReactPage';
 import './App.css';
 
 function ProtectedRoute({ children, roles }) {
@@ -44,6 +45,7 @@ function App() {
             <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="admin/reports" element={<ProtectedRoute roles={['admin', 'staff']}><AdminReports /></ProtectedRoute>} />
+            <Route path="dashboard-react" element={<ProtectedRoute><DashboardReactPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </AuthProvider>

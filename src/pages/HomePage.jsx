@@ -67,9 +67,9 @@ export default function HomePage() {
           <select value={filter.status} onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}>
             <option value="">Tất cả trạng thái</option>
             <option value="pending">🟡 Chờ tiếp nhận</option>
-            <option value="confirmed">🔵 Đã xác nhận</option>
-            <option value="in_progress">🟣 Đang xử lý</option>
-            <option value="resolved">🟢 Đã hoàn thành</option>
+            <option value="in_progress">🔵 Đang xử lý</option>
+            <option value="completed">🟢 Đã hoàn thành</option>
+            <option value="cancelled">🔴 Đã hủy</option>
           </select>
           <select value={filter.category_id} onChange={e => setFilter(f => ({ ...f, category_id: e.target.value }))}>
             <option value="">Tất cả danh mục</option>
@@ -127,6 +127,7 @@ export default function HomePage() {
   );
 }
 
+// Status labels theo CSDL: pending, in_progress, completed, cancelled
 function getStatusLabel(s) {
-  return { pending: 'Chờ tiếp nhận', confirmed: 'Đã xác nhận', in_progress: 'Đang xử lý', resolved: 'Đã hoàn thành', rejected: 'Đã từ chối' }[s] || s;
+  return { pending: 'Chờ tiếp nhận', in_progress: 'Đang xử lý', completed: 'Đã hoàn thành', cancelled: 'Đã hủy' }[s] || s;
 }

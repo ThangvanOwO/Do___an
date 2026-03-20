@@ -10,7 +10,14 @@ function getHeaders(isJson = true) {
 
 async function request(endpoint, options = {}) {
   const res = await fetch(`${API_BASE}${endpoint}`, options);
-  const data = await res.json();
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    if (!res.ok) throw { status: res.status, message: text || 'Lỗi phản hồi' };
+    throw { status: res.status, message: 'Phản hồi không phải JSON' };
+  }
   if (!res.ok) throw { status: res.status, ...data };
   return data;
 }

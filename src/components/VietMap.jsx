@@ -186,12 +186,12 @@ const VietMap = forwardRef(function VietMap(
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
+    // Status colors theo CSDL: pending, in_progress, completed, cancelled
     const statusColors = {
-      pending: '#f59e0b',
-      confirmed: '#3b82f6',
-      in_progress: '#8b5cf6',
-      resolved: '#10b981',
-      rejected: '#ef4444',
+      pending: '#f59e0b',      // Vàng - Chờ tiếp nhận
+      in_progress: '#3b82f6',  // Xanh dương - Đang xử lý
+      completed: '#10b981',    // Xanh lá - Đã hoàn thành
+      cancelled: '#ef4444',    // Đỏ - Đã hủy
     };
 
     reports.forEach(report => {
@@ -257,40 +257,70 @@ const VietMap = forwardRef(function VietMap(
 
 export default VietMap;
 
-// Hàm gọi VietMap Route API
-export async function fetchVietMapRoute(origin, destination, vehicle = 'motorcycle') {
-  const url = `https://maps.vietmap.vn/api/route?api-version=1.1&apikey=${VIETMAP_API_KEY}`
-    + `&point=${origin.lat},${origin.lng}`
-    + `&point=${destination.lat},${destination.lng}`
-    + `&vehicle=${vehicle}&points_encoded=true`;
+/** VietMap Route v3 chỉ hỗ trợ: car | motorcycle | truck */
+const ROUTE_VEHICLE_V3 = {
+  car: 'car',
+  motorcycle: 'motorcycle',
+  truck: 'truck',
+  bike: 'motorcycle',
+  foot: 'motorcycle',
+};
 
+// Hàm gọi VietMap Route API v3 (docs: /api/route/v3, point=lat,lng)
+export async function fetchVietMapRoute(origin, destination, vehicle = 'motorcycle') {
+  const v = ROUTE_VEHICLE_V3[vehicle] || 'car';
+  const params = new URLSearchParams({
+    apikey: VIETMAP_API_KEY,
+    points_encoded: 'true',
+    vehicle: v,
+  });
+  params.append('point', `${origin.lat},${origin.lng}`);
+  params.append('point', `${destination.lat},${destination.lng}`);
+
+  const url = `https://maps.vietmap.vn/api/route/v3?${params.toString()}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Không thể lấy dữ liệu chỉ đường');
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
 
   if (data.code !== 'OK' || !data.paths?.length) {
-    throw new Error('Không tìm được đường đi');
+    let msg = 'Không tìm được đường đi';
+    if (data.messages) {
+      msg = typeof data.messages === 'string' ? data.messages : JSON.stringify(data.messages);
+    } else if (data.code === 'ZERO_RESULTS') {
+      msg = 'Không có lộ trình giữa hai điểm.';
+    } else if (data.code === 'INVALID_REQUEST') {
+      msg = 'Tham số chỉ đường không hợp lệ.';
+    }
+    throw new Error(msg);
   }
 
   const path = data.paths[0];
-  const coordinates = decodePolyline(path.points);
+  let coordinates;
+  if (path.points_encoded === false && Array.isArray(path.points)) {
+    coordinates = path.points.map((pair) => {
+      const lat = pair[0];
+      const lng = pair[1];
+      return [lng, lat];
+    });
+  } else {
+    coordinates = decodePolyline(path.points);
+  }
 
   return {
     coordinates,
-    distance: path.distance,         // mét
-    time: path.time,                 // millisecond
-    bbox: path.bbox,                 // [minLon, minLat, maxLon, maxLat]
-    instructions: path.instructions, // hướng dẫn từng bước
+    distance: path.distance,
+    time: path.time,
+    bbox: path.bbox,
+    instructions: path.instructions,
   };
 }
 
+// Status labels theo CSDL: pending, in_progress, completed, cancelled
 function getStatusLabel(status) {
   const labels = {
     pending: 'Chờ tiếp nhận',
-    confirmed: 'Đã xác nhận',
     in_progress: 'Đang xử lý',
-    resolved: 'Đã hoàn thành',
-    rejected: 'Đã từ chối',
+    completed: 'Đã hoàn thành',
+    cancelled: 'Đã hủy',
   };
   return labels[status] || status;
 }

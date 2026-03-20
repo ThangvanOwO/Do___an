@@ -71,7 +71,8 @@ router.post('/', authenticate, authorize('admin', 'staff'), (req, res) => {
       const { report_id, new_status } = req.body;
       if (!report_id || !new_status) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp report_id và new_status.' });
 
-      const validStatuses = ['pending', 'confirmed', 'in_progress', 'resolved', 'rejected'];
+      // Status hợp lệ theo CSDL: pending, in_progress, completed, cancelled
+      const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
       if (!validStatuses.includes(new_status)) return res.status(400).json({ success: false, message: `Trạng thái không hợp lệ. Các giá trị cho phép: ${validStatuses.join(', ')}` });
 
       const db = getDb();

@@ -1,4 +1,4 @@
-# 👥 2. USERS - Người dùng (6 endpoints)
+# 👥 2. USERS - Người dùng (5 endpoint đang chạy + 1 mục #9 chưa code)
 
 ---
 
@@ -14,7 +14,6 @@
 | limit | number | Số lượng/trang (mặc định: 20) |
 | role | string | Lọc theo role: `admin`, `staff`, `citizen` |
 | search | string | Tìm theo tên hoặc SĐT |
-| is_active | 0/1 | Lọc theo trạng thái hoạt động |
 
 ### ✅ Thành công (200)
 ```json
@@ -29,7 +28,6 @@
         "phone_number": "0901000001",
         "role": "admin",
         "avatar_url": null,
-        "is_active": 1,
         "created_at": "2026-03-02T...",
         "updated_at": "2026-03-02T..."
       }
@@ -69,7 +67,6 @@
     "phone_number": "0901000001",
     "role": "admin",
     "avatar_url": null,
-    "is_active": 1,
     "created_at": "2026-03-02T...",
     "updated_at": "2026-03-02T...",
     "total_reports": 3
@@ -161,32 +158,10 @@
 
 ---
 
-## #9 - PATCH `/api/users/:id/toggle-active`
-> Kích hoạt / Vô hiệu hóa tài khoản
+## #9 - PATCH `/api/users/:id/toggle-active` _(chưa triển khai trong code)_
 
-**Auth:** 🔒 Admin only
-
-### ✅ Thành công (200)
-```json
-{
-  "success": true,
-  "message": "Đã vô hiệu hóa tài khoản.",
-  "data": {
-    "user_id": "uuid-xxxx",
-    "is_active": 0
-  }
-}
-```
-> *Hoặc `"message": "Đã kích hoạt tài khoản."` khi `is_active: 1`*
-
-### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 400 | Tự khóa chính mình | `{"success": false, "message": "Bạn không thể vô hiệu hóa chính mình."}` |
-| 401 | Chưa đăng nhập | `{"success": false, "message": "Không có quyền truy cập. Vui lòng đăng nhập."}` |
-| 403 | Không phải admin | `{"success": false, "message": "Bạn không có quyền thực hiện hành động này."}` |
-| 404 | ID không tồn tại | `{"success": false, "message": "Không tìm thấy người dùng."}` |
-| 500 | Lỗi server | `{"success": false, "message": "Lỗi server."}` |
+> **Lưu ý:** Endpoint này được mô tả trong tài liệu cũ / đặt tả nhưng **chưa có route** trong `users.routes.js`. Schema `users` hiện tại **không có** cột `is_active`.  
+> Nếu cần: thêm cột DB + route PATCH, hoặc xóa hẳn mục này khỏi client.
 
 ---
 

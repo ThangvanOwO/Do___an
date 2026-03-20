@@ -1,7 +1,7 @@
 # 📚 TỔNG HỢP TẤT CẢ API ENDPOINTS
 
 > **Base URL:** `http://localhost:5000/api`  
-> **Tổng cộng:** 41 endpoints  
+> **Tổng cộng:** ~40 endpoint đã gắn route (xem từng file; một số dòng trong tài liệu có thể là “đặt tả tương lai”).  
 > **Xác thực (Auth):** Gửi header `Authorization: Bearer <token>`
 
 ---
@@ -11,7 +11,7 @@
 | # | Nhóm | Số endpoint |
 |---|------|-------------|
 | 1 | [Auth (Xác thực)](#1-auth-xác-thực) | 4 |
-| 2 | [Users (Người dùng)](#2-users-người-dùng) | 6 |
+| 2 | [Users (Người dùng)](#2-users-người-dùng) | 5 (+ #9 chưa triển khai) |
 | 3 | [Categories (Danh mục)](#3-categories-danh-mục) | 5 |
 | 4 | [Reports (Báo cáo sự cố)](#4-reports-báo-cáo-sự-cố) | 11 |
 | 5 | [Logs (Nhật ký xử lý)](#5-logs-nhật-ký-xử-lý) | 4 |
