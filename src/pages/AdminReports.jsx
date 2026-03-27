@@ -22,8 +22,8 @@ export default function AdminReports() {
       if (filters.status) params += `&status=${filters.status}`;
       if (filters.category_id) params += `&category_id=${filters.category_id}`;
       const res = await reportsAPI.getAll(params);
-      setReports(res.data.reports);
-      setPagination(p => ({ ...p, total_pages: res.data.pagination.total_pages }));
+      setReports(Array.isArray(res.data) ? res.data : (res.data?.reports || []));
+      setPagination(p => ({ ...p, total_pages: res.pagination?.total_pages || res.data?.pagination?.total_pages || 1 }));
     } catch (err) { console.error(err); }
     setLoading(false);
   }
@@ -42,14 +42,13 @@ export default function AdminReports() {
   };
 
   const statusLabels = {
-    pending: '🟡 Chờ tiếp nhận', confirmed: '🔵 Đã xác nhận',
-    in_progress: '🟣 Đang xử lý', resolved: '🟢 Đã hoàn thành', rejected: '🔴 Đã từ chối',
+    pending: '🟡 Chờ tiếp nhận', in_progress: '🟣 Đang xử lý',
+    completed: '🟢 Đã hoàn thành', cancelled: '🔴 Đã hủy',
   };
 
   const nextActions = {
-    pending: [{ action: 'confirmed', label: '✅ Xác nhận' }, { action: 'rejected', label: '❌ Từ chối' }],
-    confirmed: [{ action: 'in_progress', label: '🔧 Bắt đầu xử lý' }],
-    in_progress: [{ action: 'resolved', label: '✅ Đã giải quyết' }],
+    pending: [{ action: 'in_progress', label: '🔧 Bắt đầu xử lý' }, { action: 'cancelled', label: '❌ Hủy' }],
+    in_progress: [{ action: 'completed', label: '✅ Đã giải quyết' }],
   };
 
   return (
@@ -60,10 +59,9 @@ export default function AdminReports() {
         <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPagination(p => ({ ...p, page: 1 })); }}>
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ tiếp nhận</option>
-          <option value="confirmed">Đã xác nhận</option>
           <option value="in_progress">Đang xử lý</option>
-          <option value="resolved">Đã hoàn thành</option>
-          <option value="rejected">Đã từ chối</option>
+          <option value="completed">Đã hoàn thành</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
         <select value={filters.category_id} onChange={e => { setFilters(f => ({ ...f, category_id: e.target.value })); setPagination(p => ({ ...p, page: 1 })); }}>
           <option value="">Tất cả danh mục</option>

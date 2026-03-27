@@ -45,7 +45,7 @@ export default function RegisterPage() {
         phone_number: form.phone_number,
         password: form.password,
       });
-      navigate('/dashboard-react', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message || 'Đăng ký thất bại');
     }

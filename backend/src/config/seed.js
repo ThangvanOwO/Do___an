@@ -25,6 +25,7 @@ async function seed() {
   const users = [
     { user_id: uuidv4(), full_name: 'Nguyễn Văn Admin', phone_number: '0901000001', password_hash: bcrypt.hashSync('admin123', 10), role: 'admin' },
     { user_id: uuidv4(), full_name: 'Trần Thị Quản Lý', phone_number: '0901000002', password_hash: bcrypt.hashSync('admin123', 10), role: 'admin' },
+    { user_id: uuidv4(), full_name: 'ThangVan', phone_number: '0901000008', password_hash: bcrypt.hashSync('thangvan123', 10), role: 'admin' },
     { user_id: uuidv4(), full_name: 'Lê Văn Kỹ Thuật', phone_number: '0901000003', password_hash: bcrypt.hashSync('staff123', 10), role: 'staff' },
     { user_id: uuidv4(), full_name: 'Phạm Thị Sửa Chữa', phone_number: '0901000004', password_hash: bcrypt.hashSync('staff123', 10), role: 'staff' },
     { user_id: uuidv4(), full_name: 'Hoàng Văn Dân', phone_number: '0901000005', password_hash: bcrypt.hashSync('user123', 10), role: 'citizen' },
@@ -62,11 +63,12 @@ async function seed() {
 
   // ============ SEED REPORTS ============
   const reports = [
+    // Lưu ý: backend đang dùng enum status: pending, in_progress, completed, cancelled
     { report_id: uuidv4(), title: 'Hố ga mất nắp trên đường Nguyễn Huệ', description: 'Nắp cống bị mất trên vỉa hè đường Nguyễn Huệ, gần ngã tư Lê Lợi. Rất nguy hiểm cho người đi bộ, đặc biệt vào ban đêm.', latitude: 10.7731, longitude: 106.7030, status: 'pending', user_id: users[4].user_id, category_id: categories[0].category_id },
-    { report_id: uuidv4(), title: 'Bãi rác tự phát trong hẻm', description: 'Đống rác rất lớn ở cuối hẻm 234 Lê Văn Sỹ. Bốc mùi hôi thối, ruồi muỗi rất nhiều. Đã tồn tại hơn 2 tuần.', latitude: 10.7875, longitude: 106.6791, status: 'confirmed', user_id: users[5].user_id, category_id: categories[1].category_id },
+    { report_id: uuidv4(), title: 'Bãi rác tự phát trong hẻm', description: 'Đống rác rất lớn ở cuối hẻm 234 Lê Văn Sỹ. Bốc mùi hôi thối, ruồi muỗi rất nhiều. Đã tồn tại hơn 2 tuần.', latitude: 10.7875, longitude: 106.6791, status: 'in_progress', user_id: users[5].user_id, category_id: categories[1].category_id },
     { report_id: uuidv4(), title: 'Đèn đường hỏng đoạn Trần Hưng Đạo', description: 'Cả đoạn đường dài khoảng 200m trên đường Trần Hưng Đạo bị mất điện đèn đường. Tối đen vào ban đêm, dễ xảy ra tai nạn.', latitude: 10.7580, longitude: 106.6880, status: 'in_progress', user_id: users[6].user_id, category_id: categories[0].category_id },
-    { report_id: uuidv4(), title: 'Cây xanh gãy đổ chắn đường', description: 'Cây lớn bị gãy đổ sau trận mưa tối qua, chắn hết lối đi vào hẻm. Cần dọn dẹp gấp.', latitude: 10.7820, longitude: 106.6950, status: 'resolved', user_id: users[4].user_id, category_id: categories[4].category_id },
-    { report_id: uuidv4(), title: 'Ngập nước nghiêm trọng đường Nguyễn Hữu Cảnh', description: 'Mỗi khi mưa lớn, nước ngập hơn 50cm. Xe máy bị chết máy, ô tô không thể di chuyển.', latitude: 10.7890, longitude: 106.7120, status: 'pending', user_id: users[5].user_id, category_id: categories[5].category_id },
+    { report_id: uuidv4(), title: 'Cây xanh gãy đổ chắn đường', description: 'Cây lớn bị gãy đổ sau trận mưa tối qua, chắn hết lối đi vào hẻm. Cần dọn dẹp gấp.', latitude: 10.7820, longitude: 106.6950, status: 'completed', user_id: users[4].user_id, category_id: categories[4].category_id },
+    { report_id: uuidv4(), title: 'Ngập nước nghiêm trọng đường Nguyễn Hữu Cảnh', description: 'Mỗi khi mưa lớn, nước ngập hơn 50cm. Xe máy bị chết máy, ô tô không thể di chuyển.', latitude: 10.7890, longitude: 106.7120, status: 'cancelled', user_id: users[5].user_id, category_id: categories[5].category_id },
   ];
 
   for (const r of reports) {
@@ -77,13 +79,38 @@ async function seed() {
   }
   console.log(`✅ Đã tạo ${reports.length} reports`);
 
+  // ============ SEED REPORT_IMAGES ============
+  // Chỉ cần URL mẫu để frontend hiển thị; file thật (nếu có) nằm ở folder uploads.
+  const reportImages = [
+    { image_id: uuidv4(), report_id: reports[1].report_id, image_url: '/uploads/reports/seed-report-2-1.png' },
+    { image_id: uuidv4(), report_id: reports[1].report_id, image_url: '/uploads/reports/seed-report-2-2.png' },
+    { image_id: uuidv4(), report_id: reports[2].report_id, image_url: '/uploads/reports/seed-report-3-1.png' },
+    { image_id: uuidv4(), report_id: reports[3].report_id, image_url: '/uploads/reports/seed-report-4-1.png' },
+    { image_id: uuidv4(), report_id: reports[4].report_id, image_url: '/uploads/reports/seed-report-5-1.png' },
+  ];
+
+  for (const img of reportImages) {
+    await db.query(
+      `INSERT IGNORE INTO report_images (image_id, report_id, image_url) VALUES (?, ?, ?)`,
+      [img.image_id, img.report_id, img.image_url]
+    );
+  }
+  console.log(`✅ Đã tạo ${reportImages.length} report_images`);
+
   // ============ SEED REPORT_LOGS ============
   const logs = [
-    { log_id: uuidv4(), report_id: reports[1].report_id, changed_by: users[0].user_id, old_status: 'pending', new_status: 'confirmed', proof_image_url: null },
-    { log_id: uuidv4(), report_id: reports[2].report_id, changed_by: users[0].user_id, old_status: 'pending', new_status: 'confirmed', proof_image_url: null },
-    { log_id: uuidv4(), report_id: reports[2].report_id, changed_by: users[2].user_id, old_status: 'confirmed', new_status: 'in_progress', proof_image_url: null },
-    { log_id: uuidv4(), report_id: reports[3].report_id, changed_by: users[0].user_id, old_status: 'pending', new_status: 'confirmed', proof_image_url: null },
-    { log_id: uuidv4(), report_id: reports[3].report_id, changed_by: users[3].user_id, old_status: 'confirmed', new_status: 'resolved', proof_image_url: null },
+    // Report 2: in_progress (pending -> in_progress)
+    { log_id: uuidv4(), report_id: reports[1].report_id, changed_by: users[0].user_id, old_status: 'pending', new_status: 'in_progress', proof_image_url: null },
+
+    // Report 3: in_progress (pending -> in_progress)
+    { log_id: uuidv4(), report_id: reports[2].report_id, changed_by: users[2].user_id, old_status: 'pending', new_status: 'in_progress', proof_image_url: null },
+
+    // Report 4: completed (pending -> in_progress -> completed)
+    { log_id: uuidv4(), report_id: reports[3].report_id, changed_by: users[3].user_id, old_status: 'pending', new_status: 'in_progress', proof_image_url: null },
+    { log_id: uuidv4(), report_id: reports[3].report_id, changed_by: users[0].user_id, old_status: 'in_progress', new_status: 'completed', proof_image_url: null },
+
+    // Report 5: cancelled (pending -> cancelled)
+    { log_id: uuidv4(), report_id: reports[4].report_id, changed_by: users[0].user_id, old_status: 'pending', new_status: 'cancelled', proof_image_url: null },
   ];
 
   for (const l of logs) {
@@ -98,6 +125,7 @@ async function seed() {
   console.log('\n📋 Tài khoản đăng nhập mẫu:');
   console.log('  Admin:    0901000001 / admin123');
   console.log('  Admin 2:  0901000002 / admin123');
+  console.log('  Admin 3:  0901000008 / thangvan123 (ThangVan)');
   console.log('  Staff:    0901000003 / staff123');
   console.log('  Staff 2:  0901000004 / staff123');
   console.log('  Citizen:  0901000005 / user123');

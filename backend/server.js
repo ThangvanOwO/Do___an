@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -13,6 +14,7 @@ import reportsRoutes from './src/routes/reports.routes.js';
 import logsRoutes from './src/routes/logs.routes.js';
 import statisticsRoutes from './src/routes/statistics.routes.js';
 import floodsRoutes from './src/routes/floods.routes.js';
+import vietmapRoutes from './src/routes/vietmap.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +56,8 @@ app.get('/api', (req, res) => {
       reports: '/api/reports',
       logs: '/api/logs',
       statistics: '/api/statistics',
-      floods: '/api/floods'
+      floods: '/api/floods',
+      vietmap: '/api/vietmap (proxy Route)'
     }
   });
 });
@@ -66,6 +69,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/floods', floodsRoutes);
+app.use('/api/vietmap', vietmapRoutes);
 
 // ============ ERROR HANDLER ============
 app.use(errorHandler);

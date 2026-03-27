@@ -6,6 +6,12 @@
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
+/* Icon dạng filled (tab active, settings sidebar, v.v.) */
+.material-symbols-outlined.ms-fill,
+.ms-fill.material-symbols-outlined {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
 @layer utilities {
   /* Chi tiết báo cáo (Tailwind): map fill khung cố định */
   .report-detail-map-host {

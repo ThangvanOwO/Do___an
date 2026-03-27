@@ -64,9 +64,12 @@ router.get('/', async (req, res) => {
       result.push({ ...report, images });
     }
 
+    const limitNum = parseInt(limit);
+    const pageNum = parseInt(page);
     res.json({
       success: true, message: 'Lấy danh sách báo cáo thành công.',
-      data: result
+      data: result,
+      pagination: { total, page: pageNum, limit: limitNum, total_pages: Math.ceil(total / limitNum) || 1 }
     });
   } catch (error) {
     console.error('Get reports error:', error);

@@ -18,19 +18,19 @@ export default function AdminDashboard() {
       setStats(ovRes.data);
       setByCategory(catRes.data);
       setByStatus(stRes.data);
-      setRecentReports(rptRes.data.reports);
+      setRecentReports(Array.isArray(rptRes.data) ? rptRes.data : []);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="loading-screen p-4">Đang tải thống kê...</div>;
 
   const statusColors = {
-    pending: '#f59e0b', confirmed: '#3b82f6',
-    in_progress: '#8b5cf6', resolved: '#10b981', rejected: '#ef4444',
+    pending: '#f59e0b', in_progress: '#8b5cf6',
+    completed: '#10b981', cancelled: '#ef4444',
   };
   const statusLabels = {
-    pending: 'Chờ tiếp nhận', confirmed: 'Đã xác nhận',
-    in_progress: 'Đang xử lý', resolved: 'Đã hoàn thành', rejected: 'Đã từ chối',
+    pending: 'Chờ tiếp nhận', in_progress: 'Đang xử lý',
+    completed: 'Đã hoàn thành', cancelled: 'Đã hủy',
   };
 
   const totalByStatus = byStatus.reduce((sum, s) => sum + s.count, 0) || 1;
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider">Đã giải quyết</p>
-            <h3 className="text-4xl font-black tracking-tight mt-1">{stats?.resolved_reports ?? 0}</h3>
+            <h3 className="text-4xl font-black tracking-tight mt-1">{stats?.reports_by_status?.find(s => s.status === 'completed')?.count ?? 0}</h3>
           </div>
         </div>
 
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider">Chờ xử lý</p>
-            <h3 className="text-4xl font-black tracking-tight mt-1">{stats?.pending_reports ?? 0}</h3>
+            <h3 className="text-4xl font-black tracking-tight mt-1">{stats?.reports_by_status?.find(s => s.status === 'pending')?.count ?? 0}</h3>
           </div>
         </div>
       </section>

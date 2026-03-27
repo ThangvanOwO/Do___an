@@ -1,30 +1,25 @@
-# 📋 4. REPORTS - Báo cáo sự cố (11 endpoints)
+# 📋 4. REPORTS - Báo cáo sự cố
 
-> **CSDL Tham chiếu:** Bảng `reports`, `report_images`, `report_logs`
-> 
-> **Status hợp lệ:** `pending`, `in_progress`, `completed`, `cancelled`
+> Base: `/api/reports`
+> CSDL tham chiếu: `reports`, `report_images`, `report_logs`
+>
+> `reports.status` hợp lệ: `pending`, `in_progress`, `completed`, `cancelled`
 
 ---
 
 ## #16 - GET `/api/reports`
-> Lấy danh sách báo cáo (có filter + phân trang)
+> Lấy danh sách báo cáo (có filter)
 
-**Auth:** 🔓 Không bắt buộc
+**Auth:** Không yêu cầu
 
-**Query Parameters:**
-| Param | Type | Mô tả |
-|-------|------|-------|
-| page | number | Trang (mặc định: 1) |
-| limit | number | Số lượng/trang (mặc định: 20) |
-| status | string | `pending`, `in_progress`, `completed`, `cancelled` |
-| category_id | string | Lọc theo danh mục (UUID) |
-| user_id | string | Lọc theo người báo cáo (UUID) |
-| search | string | Tìm theo tiêu đề hoặc mô tả |
-| sort_by | string | `created_at`, `status` (mặc định: `created_at`) |
-| sort_order | string | `ASC`, `DESC` (mặc định: `DESC`) |
-| lat | number | Vĩ độ trung tâm (dùng kèm lng, radius) |
-| lng | number | Kinh độ trung tâm |
-| radius | number | Bán kính tìm kiếm (km) |
+**Query Parameters (tuỳ chọn):**
+- `page`, `limit`
+- `status`
+- `category_id`
+- `user_id`
+- `search` (tìm `title` hoặc `description`)
+- `sort_by` (`created_at|status`), `sort_order` (`ASC|DESC`)
+- `lat`, `lng`, `radius` (km) để lọc bán kính
 
 ### ✅ Thành công (200)
 ```json
@@ -34,25 +29,27 @@
   "data": [
     {
       "report_id": "uuid-xxxx",
-      "title": "Ổ gà lớn trên đường Nguyễn Huệ",
-      "description": "Ổ gà sâu khoảng 30cm...",
-      "latitude": 10.7731,
-      "longitude": 106.7030,
+      "title": "...",
+      "description": "...",
+      "latitude": 10.77,
+      "longitude": 106.70,
       "status": "pending",
       "created_at": "2026-03-02T...",
       "updated_at": "2026-03-02T...",
       "user_id": "uuid-user",
-      "category_id": "uuid-category",
-      "reporter_name": "Trần Thị Bình",
-      "reporter_phone": "0901234567",
+      "category_id": "uuid-cat",
+
+      "reporter_name": "...",
+      "reporter_phone": "...",
       "reporter_avatar": null,
-      "category_name": "Hạ tầng",
+      "category_name": "...",
       "priority_level": 1,
+
       "images": [
         {
           "image_id": "uuid-img",
           "report_id": "uuid-xxxx",
-          "image_url": "/uploads/reports/xxx.jpg",
+          "image_url": "/uploads/reports/....",
           "created_at": "2026-03-02T..."
         }
       ]
@@ -62,23 +59,18 @@
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 500 | Lỗi server | `{"success": false, "message": "Lỗi server."}` |
+- `500`: `Lỗi server.`
 
 ---
 
 ## #17 - GET `/api/reports/my-reports`
-> Lấy danh sách báo cáo của chính mình
+> Lấy danh sách báo cáo của chính user đang đăng nhập
 
-**Auth:** 🔒 Bắt buộc
+**Auth:** 🔒 Bắt buộc (`authenticate`)
 
-**Query Parameters:**
-| Param | Type | Mô tả |
-|-------|------|-------|
-| page | number | Trang (mặc định: 1) |
-| limit | number | Số lượng/trang (mặc định: 20) |
-| status | string | Lọc theo trạng thái |
+**Query Parameters (tuỳ chọn):**
+- `page`, `limit`
+- `status`
 
 ### ✅ Thành công (200)
 ```json
@@ -89,103 +81,105 @@
     "reports": [
       {
         "report_id": "uuid-xxxx",
-        "title": "Ổ gà lớn trên đường Nguyễn Huệ",
+        "title": "...",
         "description": "...",
-        "latitude": 10.7731,
-        "longitude": 106.7030,
+        "latitude": 10.77,
+        "longitude": 106.70,
         "status": "pending",
         "created_at": "2026-03-02T...",
         "updated_at": "2026-03-02T...",
-        "category_name": "Hạ tầng",
-        "images": [...]
+        "category_name": "...",
+        "images": [ { "image_id": "...", "image_url": "...", "created_at": "..." } ]
       }
     ],
-    "pagination": {
-      "total": 5,
-      "page": 1,
-      "limit": 20,
-      "total_pages": 1
-    }
+    "pagination": { "total": 5, "page": 1, "limit": 20, "total_pages": 1 }
   }
 }
 ```
 
+### ❌ Thất bại
+- `500`: `Lỗi server.`
+- `401`: theo middleware `authenticate`
+
 ---
 
 ## #18 - GET `/api/reports/nearby`
-> Lấy danh sách báo cáo gần vị trí hiện tại
+> Lấy danh sách báo cáo gần vị trí hiện tại (lọc bán kính)
 
-**Auth:** 🔓 Không bắt buộc
+**Auth:** Không bắt buộc
 
 **Query Parameters:**
-| Param | Type | Mô tả |
-|-------|------|-------|
-| lat | number | **Bắt buộc** - Vĩ độ |
-| lng | number | **Bắt buộc** - Kinh độ |
-| radius | number | Bán kính (km), mặc định: 5 |
+- `lat`, `lng` (Bắt buộc)
+- `radius` (km, mặc định `5`)
 
 ### ✅ Thành công (200)
 ```json
 {
   "success": true,
-  "message": "Tìm thấy 12 báo cáo trong bán kính 5km.",
+  "message": "Tìm thấy X báo cáo trong bán kính Ykm.",
   "data": [
     {
       "report_id": "uuid-xxxx",
-      "title": "Ổ gà lớn",
-      "latitude": 10.7731,
-      "longitude": 106.7030,
+      "title": "...",
+      "latitude": 10.77,
+      "longitude": 106.70,
       "status": "pending",
-      "created_at": "...",
-      "reporter_name": "Nguyễn Văn A",
-      "category_name": "Hạ tầng",
+      "reporter_name": "...",
+      "category_name": "...",
       "distance_km": 0.5
     }
   ]
 }
 ```
 
+### ❌ Thất bại
+- `400`: `Vui lòng cung cấp tọa độ (lat, lng).`
+- `500`: `Lỗi server.`
+
 ---
 
 ## #19 - GET `/api/reports/map-data`
-> Lấy dữ liệu tối giản cho bản đồ (tọa độ + status)
+> Dữ liệu “tối giản” cho marker map
 
-**Auth:** 🔓 Không bắt buộc
+**Auth:** Không bắt buộc
 
-**Query Parameters:**
-| Param | Type | Mô tả |
-|-------|------|-------|
-| status | string | Lọc theo trạng thái |
-| category_id | string | Lọc theo danh mục |
+**Query Parameters (tuỳ chọn):**
+- `status`
+- `category_id`
+
+> Mặc định loại `cancelled`.
 
 ### ✅ Thành công (200)
 ```json
 {
   "success": true,
-  "message": "Lấy 45 điểm trên bản đồ.",
+  "message": "Lấy N điểm trên bản đồ.",
   "data": [
     {
       "report_id": "uuid-xxxx",
-      "title": "Ổ gà lớn",
-      "description": "Mô tả ngắn...",
-      "latitude": 10.7731,
-      "longitude": 106.7030,
+      "title": "...",
+      "description": "...",
+      "latitude": 10.77,
+      "longitude": 106.70,
       "status": "pending",
-      "created_at": "...",
-      "category_name": "Hạ tầng",
+      "created_at": "2026-03-02T...",
+      "category_name": "...",
       "priority_level": 1,
-      "image_url": "/uploads/reports/xxx.jpg"
+      "image_url": "/uploads/reports/...."
     }
   ]
 }
 ```
 
+### ❌ Thất bại
+- `500`: `Lỗi server.`
+
 ---
 
 ## #20 - GET `/api/reports/:id`
-> Lấy chi tiết một báo cáo
+> Lấy chi tiết 1 báo cáo (kèm ảnh + lịch sử status)
 
-**Auth:** 🔓 Không bắt buộc
+**Auth:** Không bắt buộc
 
 ### ✅ Thành công (200)
 ```json
@@ -194,39 +188,33 @@
   "message": "Lấy chi tiết báo cáo thành công.",
   "data": {
     "report_id": "uuid-xxxx",
-    "title": "Ổ gà lớn trên đường Nguyễn Huệ",
-    "description": "Ổ gà sâu khoảng 30cm, rất nguy hiểm cho xe máy.",
-    "latitude": 10.7731,
-    "longitude": 106.7030,
-    "status": "in_progress",
-    "created_at": "2026-03-02T08:30:00Z",
-    "updated_at": "2026-03-02T10:15:00Z",
-    "user_id": "uuid-user",
-    "category_id": "uuid-cat",
-    "reporter_name": "Trần Thị Bình",
-    "reporter_phone": "0901234567",
-    "reporter_avatar": null,
-    "category_name": "Hạ tầng",
+    "title": "...",
+    "description": "...",
+    "latitude": 10.77,
+    "longitude": 106.70,
+    "status": "pending",
+    "created_at": "...",
+    "updated_at": "...",
+    "category_name": "...",
     "priority_level": 1,
-    "category_description": "Các sự cố liên quan đến cơ sở hạ tầng...",
+    "category_description": "...",
+    "reporter_name": "...",
+    "reporter_phone": "...",
+    "reporter_avatar": null,
+
     "images": [
-      {
-        "image_id": "uuid-img-1",
-        "report_id": "uuid-xxxx",
-        "image_url": "/uploads/reports/report-xxx-1.jpg",
-        "created_at": "..."
-      }
+      { "image_id": "...", "image_url": "...", "created_at": "..." }
     ],
     "logs": [
       {
-        "log_id": "uuid-log",
-        "report_id": "uuid-xxxx",
-        "changed_by": "uuid-staff",
+        "log_id": "...",
+        "report_id": "...",
+        "changed_by": "...",
         "old_status": "pending",
         "new_status": "in_progress",
         "proof_image_url": null,
-        "updated_at": "2026-03-02T10:15:00Z",
-        "changed_by_name": "Lê Văn Công",
+        "updated_at": "2026-03-02T...",
+        "changed_by_name": "...",
         "changed_by_role": "staff"
       }
     ]
@@ -235,28 +223,21 @@
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 404 | Không tìm thấy | `{"success": false, "message": "Không tìm thấy báo cáo."}` |
+- `404`: `Không tìm thấy báo cáo.`
+- `500`: `Lỗi server.`
 
 ---
 
 ## #21 - POST `/api/reports`
-> Tạo báo cáo sự cố mới
+> Tạo báo cáo mới
 
-**Auth:** 🔒 Bắt buộc
+**Auth:** 🔒 Bắt buộc (`authenticate`)
 
 **Content-Type:** `multipart/form-data`
 
-**Body:**
-| Field | Type | Mô tả |
-|-------|------|-------|
-| title | string | **Bắt buộc** - Tiêu đề sự cố |
-| description | string | **Bắt buộc** - Mô tả chi tiết |
-| latitude | number | **Bắt buộc** - Vĩ độ GPS |
-| longitude | number | **Bắt buộc** - Kinh độ GPS |
-| category_id | string | **Bắt buộc** - UUID danh mục |
-| images | File[] | Tùy chọn - Tối đa 5 ảnh (jpg, png, webp) |
+**Required fields (body):**
+- `title`, `description`, `latitude`, `longitude`, `category_id`
+**Optional:** `images` (upload nhiều ảnh trường `images`, tối đa 5)
 
 ### ✅ Thành công (201)
 ```json
@@ -264,32 +245,20 @@
   "success": true,
   "message": "Tạo báo cáo sự cố thành công! Chúng tôi sẽ xử lý sớm nhất.",
   "data": {
-    "report_id": "uuid-xxxx",
-    "title": "Đèn giao thông hỏng",
-    "description": "...",
-    "latitude": 10.7731,
-    "longitude": 106.7030,
-    "status": "pending",
-    "created_at": "...",
-    "user_id": "uuid-user",
-    "category_id": "uuid-cat",
-    "category_name": "Hạ tầng",
+    "...": "...",
     "images": [
-      {
-        "image_id": "uuid-img",
-        "image_url": "/uploads/reports/xxx.jpg"
-      }
+      { "image_id": "...", "image_url": "...", "created_at": "..." }
     ]
   }
 }
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 400 | Thiếu trường | `{"success": false, "message": "Vui lòng điền đầy đủ: title, description, latitude, longitude, category_id"}` |
-| 400 | Danh mục không tồn tại | `{"success": false, "message": "Danh mục không hợp lệ."}` |
-| 401 | Chưa đăng nhập | `{"success": false, "message": "Không có token xác thực."}` |
+- `400` thiếu field: `Vui lòng điền đầy đủ: title, description, latitude, longitude, category_id`
+- `400` danh mục không hợp lệ: `Danh mục không hợp lệ.`
+- `400` lỗi upload ảnh: `err.message` (do multer)
+- `401`: theo middleware authenticate
+- `500`: `Lỗi server khi tạo báo cáo.`
 
 ---
 
@@ -298,52 +267,41 @@
 
 **Auth:** 🔒 Bắt buộc
 
-**Body:**
-| Field | Type | Mô tả |
-|-------|------|-------|
-| title | string | Tiêu đề mới |
-| description | string | Mô tả mới |
-| latitude | number | Vĩ độ mới |
-| longitude | number | Kinh độ mới |
-| category_id | string | Danh mục mới |
-
 ### ✅ Thành công (200)
 ```json
 {
   "success": true,
   "message": "Cập nhật báo cáo thành công.",
   "data": {
-    "report_id": "uuid-xxxx",
-    "title": "Tiêu đề đã sửa",
-    "..."
+    "...": "...",
+    "category_name": "..."
   }
 }
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 403 | Không có quyền | `{"success": false, "message": "Bạn không có quyền chỉnh sửa báo cáo này."}` |
-| 400 | Đã hoàn thành | `{"success": false, "message": "Không thể chỉnh sửa báo cáo đã hoàn thành."}` |
-| 404 | Không tìm thấy | `{"success": false, "message": "Không tìm thấy báo cáo."}` |
+- `404`: `Không tìm thấy báo cáo.`
+- `403`: `Bạn không có quyền chỉnh sửa báo cáo này.`
+- `400`: nếu `status === completed` và không phải admin: `Không thể chỉnh sửa báo cáo đã hoàn thành.`
+- `500`: `Lỗi server.`
 
 ---
 
 ## #23 - PATCH `/api/reports/:id/status`
-> Cập nhật trạng thái báo cáo (admin/staff only)
+> Cập nhật trạng thái (admin/staff)
 
-**Auth:** 🔒 Bắt buộc (role: `admin` hoặc `staff`)
+**Auth:** 🔒 Bắt buộc (`authorize('admin','staff')`)
 
-**Body:**
-| Field | Type | Mô tả |
-|-------|------|-------|
-| new_status | string | **Bắt buộc** - `pending`, `in_progress`, `completed`, `cancelled` |
+**Body (JSON):**
+```json
+{ "new_status": "pending|in_progress|completed|cancelled" }
+```
 
 ### ✅ Thành công (200)
 ```json
 {
   "success": true,
-  "message": "Cập nhật trạng thái thành công: Chờ tiếp nhận → Đang xử lý",
+  "message": "Cập nhật trạng thái thành công: ... → ...",
   "data": {
     "report_id": "uuid-xxxx",
     "old_status": "pending",
@@ -354,67 +312,36 @@
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 400 | Thiếu status | `{"success": false, "message": "Vui lòng cung cấp trạng thái mới (new_status)."}` |
-| 400 | Status không hợp lệ | `{"success": false, "message": "Trạng thái không hợp lệ..."}` |
-| 403 | Không có quyền | `{"success": false, "message": "Bạn không có quyền thực hiện hành động này."}` |
-
----
-
-## #24 - GET `/api/reports/:id/logs`
-> Lấy lịch sử thay đổi trạng thái
-
-**Auth:** 🔓 Không bắt buộc
-
-### ✅ Thành công (200)
-```json
-{
-  "success": true,
-  "message": "Lấy lịch sử cập nhật thành công.",
-  "data": [
-    {
-      "log_id": "uuid-log",
-      "report_id": "uuid-xxxx",
-      "changed_by": "uuid-staff",
-      "old_status": "pending",
-      "new_status": "in_progress",
-      "proof_image_url": null,
-      "updated_at": "2026-03-02T10:15:00Z",
-      "changed_by_name": "Lê Văn Công",
-      "changed_by_role": "staff"
-    }
-  ]
-}
-```
+- `400` thiếu `new_status`: `Vui lòng cung cấp trạng thái mới (new_status).`
+- `400` sai enum: `Trạng thái không hợp lệ. Các giá trị cho phép: pending, in_progress, completed, cancelled`
+- `404`: `Không tìm thấy báo cáo.`
+- `500`: `Lỗi server.`
 
 ---
 
 ## #25 - POST `/api/reports/:id/images`
-> Thêm ảnh cho báo cáo
+> Upload thêm ảnh cho báo cáo
 
 **Auth:** 🔒 Bắt buộc (chủ sở hữu hoặc admin)
 
-**Content-Type:** `multipart/form-data`
-
-**Body:**
-| Field | Type | Mô tả |
-|-------|------|-------|
-| images | File[] | **Bắt buộc** - Ảnh cần thêm |
+**Body:** `multipart/form-data` (field `images`)
 
 ### ✅ Thành công (201)
 ```json
 {
   "success": true,
-  "message": "Đã upload 2 ảnh thành công.",
+  "message": "Đã upload X ảnh thành công.",
   "data": [
-    {
-      "image_id": "uuid-img",
-      "image_url": "/uploads/reports/xxx.jpg"
-    }
+    { "image_id": "uuid-xxxx", "image_url": "/uploads/reports/..." }
   ]
 }
 ```
+
+### ❌ Thất bại
+- `404`: `Không tìm thấy báo cáo.`
+- `403`: `Bạn không có quyền thêm ảnh cho báo cáo này.`
+- `400`: `Vui lòng chọn ít nhất 1 ảnh.` hoặc `err.message` (lỗi upload)
+- `500`: `Lỗi server.`
 
 ---
 
@@ -428,62 +355,19 @@
 {
   "success": true,
   "message": "Đã xóa báo cáo thành công.",
-  "data": {
-    "report_id": "uuid-xxxx"
-  }
+  "data": { "report_id": "uuid-xxxx" }
 }
 ```
 
 ### ❌ Thất bại
-| Code | Trường hợp | Response |
-|------|-----------|----------|
-| 403 | Không có quyền | `{"success": false, "message": "Bạn không có quyền xóa báo cáo này."}` |
-| 404 | Không tìm thấy | `{"success": false, "message": "Không tìm thấy báo cáo."}` |
+- `404`: `Không tìm thấy báo cáo.`
+- `403`: `Bạn không có quyền xóa báo cáo này.`
+- `500`: `Lỗi server.`
 
 ---
 
-## 📌 Mapping Status
+## Ghi chú về lịch sử trạng thái
+- Trong endpoint `GET /api/reports/:id` ( #20 ) backend đã trả sẵn `logs`.
+- Ngoài ra còn có endpoint riêng trong nhóm Logs:
+  - `GET /api/logs/report/:reportId`
 
-| Giá trị CSDL | Hiển thị UI | Màu sắc |
-|--------------|-------------|---------|
-| `pending` | Chờ tiếp nhận | `#f59e0b` (Vàng) |
-| `in_progress` | Đang xử lý | `#3b82f6` (Xanh dương) |
-| `completed` | Đã hoàn thành | `#10b981` (Xanh lá) |
-| `cancelled` | Đã hủy | `#ef4444` (Đỏ) |
-
----
-
-## 📌 Cấu trúc bảng CSDL
-
-### `reports`
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| report_id | VARCHAR(36) | NO | PK, UUID |
-| title | VARCHAR(500) | NO | Tiêu đề |
-| description | TEXT | NO | Mô tả |
-| latitude | DOUBLE | NO | Vĩ độ GPS |
-| longitude | DOUBLE | NO | Kinh độ GPS |
-| status | ENUM | NO | pending/in_progress/completed/cancelled |
-| created_at | TIMESTAMP | YES | Thời gian tạo |
-| updated_at | TIMESTAMP | YES | Thời gian cập nhật |
-| user_id | VARCHAR(36) | NO | FK → users |
-| category_id | VARCHAR(36) | NO | FK → categories |
-
-### `report_images`
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| image_id | VARCHAR(36) | NO | PK, UUID |
-| report_id | VARCHAR(36) | NO | FK → reports |
-| image_url | VARCHAR(500) | NO | Đường dẫn ảnh |
-| created_at | TIMESTAMP | YES | Thời gian upload |
-
-### `report_logs`
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| log_id | VARCHAR(36) | NO | PK, UUID |
-| report_id | VARCHAR(36) | NO | FK → reports |
-| changed_by | VARCHAR(36) | NO | FK → users |
-| old_status | VARCHAR(50) | YES | Trạng thái cũ |
-| new_status | VARCHAR(50) | NO | Trạng thái mới |
-| proof_image_url | VARCHAR(500) | YES | Ảnh minh chứng |
-| updated_at | TIMESTAMP | YES | Thời gian |

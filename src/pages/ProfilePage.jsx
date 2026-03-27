@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI } from '../services/api';
+import { usersAPI, authAPI } from '../services/api';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -15,7 +15,7 @@ export default function ProfilePage() {
     setLoading(true);
     setMsg({ type: '', text: '' });
     try {
-      await usersAPI.updateProfile(form);
+      await usersAPI.update(user.user_id, { full_name: form.full_name });
       await refreshUser();
       setMsg({ type: 'success', text: 'Cập nhật thông tin thành công!' });
     } catch (err) {
@@ -33,7 +33,7 @@ export default function ProfilePage() {
     setLoading(true);
     setMsg({ type: '', text: '' });
     try {
-      await usersAPI.changePassword({ old_password: pwForm.old_password, new_password: pwForm.new_password });
+      await authAPI.changePassword({ old_password: pwForm.old_password, new_password: pwForm.new_password });
       setMsg({ type: 'success', text: 'Đổi mật khẩu thành công!' });
       setPwForm({ old_password: '', new_password: '', confirm_password: '' });
     } catch (err) {
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     const fd = new FormData();
     fd.append('avatar', file);
     try {
-      await usersAPI.uploadAvatar(fd);
+      await usersAPI.uploadAvatar(user.user_id, fd);
       await refreshUser();
       setMsg({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' });
     } catch (err) { setMsg({ type: 'error', text: err.message }); }
@@ -74,7 +74,7 @@ export default function ProfilePage() {
           <div className="profile-name">
             <h2>{user?.full_name}</h2>
             <p>{roleLabels[user?.role] || user?.role}</p>
-            <p>📞 {user?.phone}</p>
+            <p>📞 {user?.phone_number || user?.phone}</p>
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function ProfilePage() {
           </div>
           <div className="form-group">
             <label>Số điện thoại</label>
-            <input type="text" value={user?.phone || ''} disabled />
+            <input type="text" value={user?.phone_number || user?.phone || ''} disabled />
             <p className="hint">Số điện thoại không thể thay đổi</p>
           </div>
           <button className="btn btn-primary" type="submit" disabled={loading}>

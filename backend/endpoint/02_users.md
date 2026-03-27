@@ -1,3 +1,186 @@
+# 👥 2. USERS - Người dùng
+
+> Base: `/api/users`
+> Các endpoint đều trả response chung dạng:
+```json
+{ "success": true, "message": "....", "data": { ... } }
+```
+Trong trường hợp lỗi:
+```json
+{ "success": false, "message": "...." }
+```
+
+---
+
+## #5 - GET `/api/users`
+> Lấy danh sách người dùng
+
+**Auth:** 🔒 Admin only (`authorize('admin')`)
+
+**Query Parameters:**
+- `page` (number, mặc định `1`)
+- `limit` (number, mặc định `20`)
+- `role` (string: `admin|staff|citizen`)
+- `search` (string: tìm `full_name` hoặc `phone_number`)
+
+### ✅ Thành công (200)
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách người dùng thành công.",
+  "data": {
+    "users": [
+      {
+        "user_id": "uuid-xxxx",
+        "full_name": "....",
+        "phone_number": "....",
+        "role": "admin|staff|citizen",
+        "avatar_url": null
+      }
+    ],
+    "pagination": {
+      "total": 7,
+      "page": 1,
+      "limit": 20,
+      "total_pages": 1
+    }
+  }
+}
+```
+
+### ❌ Thất bại
+- `401` (không có/expired token) trả `{success:false,message: "..."}`
+  - từ middleware `authenticate`: có thể là `Không có token xác thực. Vui lòng đăng nhập.` hoặc `Token đã hết hạn...` hoặc `Token không hợp lệ...`
+- `403` nếu không đúng role admin:
+  - `Bạn không có quyền thực hiện hành động này. Yêu cầu quyền: admin`
+- `500` lỗi server: `Lỗi server.`
+
+---
+
+## #6 - GET `/api/users/:id`
+> Lấy thông tin 1 người dùng + tổng số báo cáo của user đó
+
+**Auth:** 🔒 Bắt buộc (`authenticate`)
+
+### ✅ Thành công (200)
+```json
+{
+  "success": true,
+  "message": "Lấy thông tin người dùng thành công.",
+  "data": {
+    "user_id": "uuid-xxxx",
+    "full_name": "....",
+    "phone_number": "....",
+    "role": "admin|staff|citizen",
+    "avatar_url": null,
+    "total_reports": 3
+  }
+}
+```
+
+### ❌ Thất bại
+- `401` token lỗi/mất: `{success:false,message:"..."}` (theo middleware)
+- `404` không tìm thấy: `Không tìm thấy người dùng.`
+- `500` lỗi server: `Lỗi server.`
+
+---
+
+## #7 - PUT `/api/users/:id`
+> Cập nhật thông tin người dùng (chỉ chính chủ hoặc admin)
+
+**Auth:** 🔒 Chính chủ hoặc Admin
+
+**Body (JSON):** (tất cả field optional)
+```json
+{
+  "full_name": "Tên mới",
+  "phone_number": "0909999999",
+  "role": "staff"
+}
+```
+
+> Chỉ khi `req.user.role === 'admin'` thì mới được thay đổi `role`. Các trường còn lại dùng `existing` nếu không gửi.
+
+### ✅ Thành công (200)
+```json
+{
+  "success": true,
+  "message": "Cập nhật thông tin thành công.",
+  "data": {
+    "user_id": "uuid-xxxx",
+    "full_name": "Tên mới",
+    "phone_number": "0909999999",
+    "role": "staff",
+    "avatar_url": null
+  }
+}
+```
+
+### ❌ Thất bại
+- `401` token lỗi/mất: `{success:false,message:"..."}` (theo middleware)
+- `403` không có quyền chỉnh sửa:
+  - `Bạn không có quyền chỉnh sửa thông tin người dùng này.`
+- `404` không tìm thấy user: `Không tìm thấy người dùng.`
+- `409` SĐT bị trùng:
+  - `Số điện thoại đã được sử dụng bởi tài khoản khác.`
+- `500` lỗi server: `Lỗi server.`
+
+---
+
+## #8 - PUT `/api/users/:id/avatar`
+> Upload ảnh đại diện
+
+**Auth:** 🔒 Chính chủ hoặc Admin
+
+**Body:** `multipart/form-data`
+- field `avatar`: File ảnh
+
+### ✅ Thành công (200)
+```json
+{
+  "success": true,
+  "message": "Cập nhật avatar thành công.",
+  "data": {
+    "avatar_url": "/uploads/avatars/avatar-xxxx.jpg"
+  }
+}
+```
+
+### ❌ Thất bại
+- `401` token lỗi/mất
+- `403` không có quyền:
+  - `Bạn không có quyền thay đổi avatar.`
+- `400` lỗi upload:
+  - `Vui lòng chọn file ảnh để upload.`
+  - hoặc `{ success:false, message: err.message }` (do multer trả)
+- `500` lỗi server: `Lỗi server.`
+
+---
+
+## #10 - DELETE `/api/users/:id`
+> Xóa 1 người dùng (admin only)
+
+**Auth:** 🔒 Admin only (`authorize('admin')`)
+
+### ✅ Thành công (200)
+```json
+{
+  "success": true,
+  "message": "Đã xóa người dùng thành công.",
+  "data": {
+    "user_id": "uuid-xxxx"
+  }
+}
+```
+
+### ❌ Thất bại
+- `400` không được xóa chính mình: `Bạn không thể xóa chính mình.`
+- `401` token lỗi/mất
+- `403` không phải admin:
+  - `Bạn không có quyền thực hiện hành động này. Yêu cầu quyền: admin`
+- `404` không tìm thấy: `Không tìm thấy người dùng.`
+- `500` lỗi server: `Lỗi server.`
+
 # 👥 2. USERS - Người dùng (5 endpoint đang chạy + 1 mục #9 chưa code)
 
 ---

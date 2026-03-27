@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import vietmapgl from '@vietmap/vietmap-gl-js/dist/vietmap-gl';
 import '@vietmap/vietmap-gl-js/dist/vietmap-gl.css';
+import { API_BASE } from '../services/api.js';
 
 const VIETMAP_API_KEY = '57a5a77555b7aef0739b533e3cd94eaa993ce8bcc6af834a';
+
+/** Mã lỗi Route v3 — https://maps.vietmap.vn/docs/map-api/route-version/route-v3/ */
+const ROUTE_CODE_VI = {
+  ZERO_RESULTS: 'Không có lộ trình giữa hai điểm (đường không nối được hoặc ngoài vùng dữ liệu).',
+  INVALID_REQUEST: 'Tham số chỉ đường không hợp lệ.',
+  OVER_DAILY_LIMIT:
+    'API VietMap: đã vượt hạn mức ngày hoặc key chưa kích hoạt dịch vụ Route. Kiểm tra tài khoản / gói VietMap Maps API.',
+  MAX_POINTS_EXCEED: 'Vượt quá số điểm waypoint cho phép.',
+  ERROR_UNKNOWN: 'Lỗi từ máy chủ VietMap.',
+  /** HTTP 423 — proxy backend map sang mã này */
+  SERVICE_LOCKED:
+    'Route VietMap bị khóa với API key hiện tại (HTTP 423). Cần key có quyền Route / gói còn hạn — xem thêm trong nội dung chi tiết bên dưới.',
+  INVALID_KEY: 'API key VietMap không hợp lệ hoặc không được phép.',
+  HTTP_ERROR: 'VietMap trả lỗi HTTP (không phải JSON chuẩn Route).',
+};
 
 // Decode Google Polyline (precision 5)
 function decodePolyline(encoded) {
@@ -20,8 +36,55 @@ function decodePolyline(encoded) {
   return points;
 }
 
+/** Tránh XSS trong popup HTML */
+function escapeHtml(s) {
+  if (s == null || s === '') return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Pin kiểu Google Maps: giọt màu + chấm trắng (sự cố theo trạng thái).
+ * anchor: bottom — đỉnh nhọn trùng tọa độ.
+ */
+function buildGmapsIncidentMarker(color, title) {
+  const el = document.createElement('div');
+  el.className = 'gmaps-incident-marker';
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', title || 'Sự cố');
+  el.innerHTML = `
+    <div class="gmaps-incident-marker__pin" style="--pin-color: ${color};">
+      <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M18 0C8.059 0 0 7.611 0 17c0 12.5 18 31 18 31s18-18.5 18-31C36 7.611 27.941 0 18 0z" fill="var(--pin-color)"/>
+        <circle cx="18" cy="16" r="6.5" fill="white"/>
+        <path d="M18 12.5v7M14.5 16h7" stroke="var(--pin-color)" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+  `;
+  return el;
+}
+
 const VietMap = forwardRef(function VietMap(
-  { reports = [], onMarkerClick, onMapClick, selectedLocation, center, zoom = 13, routeData, userLocation, onUserLocationFound },
+  {
+    reports = [],
+    onMarkerClick,
+    onMapClick,
+    selectedLocation,
+    center,
+    zoom = 13,
+    routeData,
+    userLocation,
+    onUserLocationFound,
+    /** Thêm class cho container (vd: full height) */
+    containerClassName = '',
+    /** 'gmaps' = pin giọt giống Google; 'classic' = marker cũ */
+    markersStyle = 'gmaps',
+    navigationControl = true,
+    geolocateControl = true,
+  },
   ref
 ) {
   const mapContainer = useRef(null);
@@ -48,23 +111,26 @@ const VietMap = forwardRef(function VietMap(
       zoom: zoom,
     });
 
-    map.addControl(new vietmapgl.NavigationControl(), 'top-right');
+    if (navigationControl) {
+      map.addControl(new vietmapgl.NavigationControl(), 'top-right');
+    }
 
-    // Thêm nút geolocate (nếu hỗ trợ)
-    try {
-      const geolocate = new vietmapgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-      });
-      map.addControl(geolocate, 'top-right');
-      geolocate.on('geolocate', (e) => {
-        if (onUserLocationFound) {
-          onUserLocationFound({ lat: e.coords.latitude, lng: e.coords.longitude });
-        }
-      });
-    } catch (err) {
-      console.warn('GeolocateControl không khả dụng:', err);
+    if (geolocateControl) {
+      try {
+        const geolocate = new vietmapgl.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true,
+          showUserHeading: true,
+        });
+        map.addControl(geolocate, 'top-right');
+        geolocate.on('geolocate', (e) => {
+          if (onUserLocationFound) {
+            onUserLocationFound({ lat: e.coords.latitude, lng: e.coords.longitude });
+          }
+        });
+      } catch (err) {
+        console.warn('GeolocateControl không khả dụng:', err);
+      }
     }
 
     map.on('load', () => {
@@ -102,6 +168,17 @@ const VietMap = forwardRef(function VietMap(
       mapRef.current = null;
     };
   }, []);
+
+  // Bản đồ co giãn theo container (full map / đổi layout)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !mapContainer.current) return;
+    const map = mapRef.current;
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    ro.observe(mapContainer.current);
+    return () => ro.disconnect();
+  }, [mapLoaded]);
 
   // Hiển thị vị trí người dùng bằng marker riêng (nếu được truyền prop)
   useEffect(() => {
@@ -194,23 +271,37 @@ const VietMap = forwardRef(function VietMap(
       cancelled: '#ef4444',    // Đỏ - Đã hủy
     };
 
-    reports.forEach(report => {
-      const el = document.createElement('div');
-      el.className = 'custom-marker';
-      el.innerHTML = `<div class="marker-pin" style="background:${statusColors[report.status] || '#6b7280'}" title="${report.title}">
+    reports.forEach((report) => {
+      const color = statusColors[report.status] || '#6b7280';
+      const title = report.title || 'Sự cố';
+
+      let el;
+      if (markersStyle === 'classic') {
+        el = document.createElement('div');
+        el.className = 'custom-marker';
+        el.innerHTML = `<div class="marker-pin" style="background:${color}" title="${escapeHtml(title)}">
         <span>📍</span>
       </div>`;
+      } else {
+        el = buildGmapsIncidentMarker(color, title);
+      }
 
-      const popup = new vietmapgl.Popup({ offset: 25, closeButton: true, maxWidth: '280px' })
-        .setHTML(`
+      const popup = new vietmapgl.Popup({
+        offset: markersStyle === 'gmaps' ? 40 : 25,
+        closeButton: true,
+        maxWidth: '280px',
+      }).setHTML(`
           <div class="marker-popup">
-            <h4>${report.title}</h4>
-            <p class="popup-category">${report.category_name || ''}</p>
-            <p class="popup-status status-${report.status}">${getStatusLabel(report.status)}</p>
+            <h4>${escapeHtml(report.title)}</h4>
+            <p class="popup-category">${escapeHtml(report.category_name || '')}</p>
+            <p class="popup-status status-${escapeHtml(report.status)}">${escapeHtml(getStatusLabel(report.status))}</p>
           </div>
         `);
 
-      const marker = new vietmapgl.Marker({ element: el })
+      const marker = new vietmapgl.Marker({
+        element: el,
+        anchor: 'bottom',
+      })
         .setLngLat([report.longitude, report.latitude])
         .setPopup(popup)
         .addTo(mapRef.current);
@@ -221,7 +312,7 @@ const VietMap = forwardRef(function VietMap(
 
       markersRef.current.push(marker);
     });
-  }, [reports, mapLoaded]);
+  }, [reports, mapLoaded, markersStyle]);
 
   // Hiển thị selected location (khi tạo report, chọn vị trí trên bản đồ)
   useEffect(() => {
@@ -237,7 +328,7 @@ const VietMap = forwardRef(function VietMap(
       el.className = 'selected-marker';
       el.innerHTML = '<div class="selected-pin">📍</div>';
 
-      selectedMarkerRef.current = new vietmapgl.Marker({ element: el, draggable: true })
+      selectedMarkerRef.current = new vietmapgl.Marker({ element: el, draggable: true, anchor: 'bottom' })
         .setLngLat([selectedLocation.lng, selectedLocation.lat])
         .addTo(mapRef.current);
 
@@ -250,9 +341,7 @@ const VietMap = forwardRef(function VietMap(
     }
   }, [selectedLocation, mapLoaded]);
 
-  return (
-    <div ref={mapContainer} className="vietmap-container" />
-  );
+  return <div ref={mapContainer} className={`vietmap-container ${containerClassName}`.trim()} />;
 });
 
 export default VietMap;
@@ -266,30 +355,47 @@ const ROUTE_VEHICLE_V3 = {
   foot: 'motorcycle',
 };
 
-// Hàm gọi VietMap Route API v3 (docs: /api/route/v3, point=lat,lng)
+/**
+ * Gọi chỉ đường qua backend `/api/vietmap/route` (tránh CORS, key có thể đặt trong env server).
+ */
 export async function fetchVietMapRoute(origin, destination, vehicle = 'motorcycle') {
+  const olat = Number(origin.lat);
+  const olng = Number(origin.lng);
+  const dlat = Number(destination.lat);
+  const dlng = Number(destination.lng);
+  if (![olat, olng, dlat, dlng].every((n) => Number.isFinite(n))) {
+    throw new Error('Tọa độ xuất phát hoặc đích không hợp lệ.');
+  }
+
   const v = ROUTE_VEHICLE_V3[vehicle] || 'car';
-  const params = new URLSearchParams({
-    apikey: VIETMAP_API_KEY,
-    points_encoded: 'true',
+  const qs = new URLSearchParams({
+    olat: String(olat),
+    olng: String(olng),
+    dlat: String(dlat),
+    dlng: String(dlng),
     vehicle: v,
   });
-  params.append('point', `${origin.lat},${origin.lng}`);
-  params.append('point', `${destination.lat},${destination.lng}`);
 
-  const url = `https://maps.vietmap.vn/api/route/v3?${params.toString()}`;
-  const res = await fetch(url);
-  const data = await res.json().catch(() => ({}));
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/vietmap/route?${qs.toString()}`);
+  } catch {
+    throw new Error('Không kết nối được máy chủ (backend). Hãy chạy API tại cổng 5000 và thử lại.');
+  }
 
-  if (data.code !== 'OK' || !data.paths?.length) {
-    let msg = 'Không tìm được đường đi';
-    if (data.messages) {
-      msg = typeof data.messages === 'string' ? data.messages : JSON.stringify(data.messages);
-    } else if (data.code === 'ZERO_RESULTS') {
-      msg = 'Không có lộ trình giữa hai điểm.';
-    } else if (data.code === 'INVALID_REQUEST') {
-      msg = 'Tham số chỉ đường không hợp lệ.';
-    }
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Phản hồi chỉ đường không phải JSON. Kiểm tra backend và mạng.');
+  }
+
+  if (data.code !== 'OK' || !Array.isArray(data.paths) || !data.paths.length) {
+    const apiMsg = typeof data.messages === 'string' ? data.messages.trim() : '';
+    const byCode = data.code ? ROUTE_CODE_VI[data.code] : '';
+    /** Ưu tiên nội dung chi tiết từ proxy (423, HTML→text, v.v.) */
+    const msg = apiMsg || [byCode].filter(Boolean).join(' ') || 'Không tìm được đường đi.';
     throw new Error(msg);
   }
 
@@ -301,8 +407,14 @@ export async function fetchVietMapRoute(origin, destination, vehicle = 'motorcyc
       const lng = pair[1];
       return [lng, lat];
     });
-  } else {
+  } else if (path.points && typeof path.points === 'string') {
     coordinates = decodePolyline(path.points);
+  } else {
+    throw new Error('Dữ liệu đường đi từ VietMap không có polyline hợp lệ.');
+  }
+
+  if (!coordinates?.length) {
+    throw new Error('Giải mã lộ trình rỗng. Thử lại hoặc đổi điểm đầu/cuối.');
   }
 
   return {

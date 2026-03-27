@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(phone, password);
-      navigate('/dashboard-react', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message || 'Đăng nhập thất bại');
     }

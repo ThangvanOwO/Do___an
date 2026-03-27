@@ -31,8 +31,8 @@ export default function MyReportsPage() {
   };
 
   const statusLabels = {
-    pending: '🟡 Chờ tiếp nhận', confirmed: '🔵 Đã xác nhận',
-    in_progress: '🟣 Đang xử lý', resolved: '🟢 Đã hoàn thành', rejected: '🔴 Đã từ chối',
+    pending: '🟡 Chờ tiếp nhận', in_progress: '🟣 Đang xử lý',
+    completed: '🟢 Đã hoàn thành', cancelled: '🔴 Đã hủy',
   };
 
   return (
@@ -46,10 +46,9 @@ export default function MyReportsPage() {
         <select value={filter} onChange={e => setFilter(e.target.value)}>
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ tiếp nhận</option>
-          <option value="confirmed">Đã xác nhận</option>
           <option value="in_progress">Đang xử lý</option>
-          <option value="resolved">Đã hoàn thành</option>
-          <option value="rejected">Đã từ chối</option>
+          <option value="completed">Đã hoàn thành</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
       </div>
 

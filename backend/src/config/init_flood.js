@@ -1,8 +1,9 @@
 import mysql from 'mysql2/promise';
 
 async function initFlood() {
+  // Dùng cùng cấu hình với database.js (do_anv2)
   const conn = await mysql.createConnection({
-    host: 'localhost', port: 3306, user: 'do_an', password: '123456', database: 'do_an'
+    host: 'localhost', port: 3306, user: 'root', password: '123456', database: 'do_anv2'
   });
 
   await conn.query('DROP TABLE IF EXISTS flood_images');

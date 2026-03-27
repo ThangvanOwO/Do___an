@@ -62,7 +62,7 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <div className="map-filters">
-        <h2>🗺️ Bản đồ Sự cố Cộng đồng</h2>
+        <h2>🗺️ Bản đồ công khai (xem nhanh)</h2>
         <div className="filter-row">
           <select value={filter.status} onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}>
             <option value="">Tất cả trạng thái</option>

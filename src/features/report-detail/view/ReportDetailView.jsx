@@ -33,6 +33,8 @@ export function ReportDetailView({
   onVehicleChange,
   handleGetRoute,
   handleClearRoute,
+  geoLoading = false,
+  retryGeolocation = () => {},
 }) {
   if (loading) {
     return (
@@ -282,6 +284,12 @@ export function ReportDetailView({
                 Chọn phương tiện và lấy lộ trình từ vị trí hiện tại đến điểm sự cố.
               </p>
 
+              {!userLocation ? (
+                <p className="mb-4 rounded-xl bg-white/10 px-3 py-2 text-xs font-label leading-relaxed text-blue-50">
+                  Trình duyệt cần quyền <strong className="text-white">Vị trí</strong> và GPS bật. Nếu đã từ chối trước đó, hãy bật lại trong cài đặt trang web.
+                </p>
+              ) : null}
+
               <div className="mb-4">
                 <label className="block text-xs font-label font-semibold text-blue-100/90 mb-2">Phương tiện</label>
                 <select
@@ -308,11 +316,22 @@ export function ReportDetailView({
                 </select>
               </div>
 
+              {!userLocation ? (
+                <button
+                  type="button"
+                  onClick={() => retryGeolocation()}
+                  disabled={geoLoading}
+                  className="mb-3 w-full rounded-full border border-white/40 bg-white/10 py-2.5 text-sm font-semibold font-label text-white hover:bg-white/15 disabled:opacity-50"
+                >
+                  {geoLoading ? 'Đang lấy vị trí…' : 'Thử lại lấy vị trí (GPS)'}
+                </button>
+              ) : null}
+
               {!routeData ? (
                 <button
                   type="button"
                   onClick={handleGetRoute}
-                  disabled={routeLoading}
+                  disabled={routeLoading || geoLoading}
                   className="w-full bg-white text-primary py-3 rounded-full text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors disabled:opacity-50"
                 >
                   <Icon name="route" />

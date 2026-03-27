@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:5000/api';
+import { dedupeCategoriesByName } from '../utils/categoryHelpers.js';
+
+export const API_BASE = 'http://localhost:5000/api';
 
 function getHeaders(isJson = true) {
   const headers = {};
@@ -41,7 +43,13 @@ export const usersAPI = {
 
 // ========== CATEGORIES ==========
 export const categoriesAPI = {
-  getAll: (params = '') => request(`/categories${params}`),
+  getAll: async (params = '') => {
+    const data = await request(`/categories${params}`);
+    if (data.success && Array.isArray(data.data)) {
+      data.data = dedupeCategoriesByName(data.data);
+    }
+    return data;
+  },
   getById: (id) => request(`/categories/${id}`),
   create: (body) => request('/categories', { method: 'POST', headers: getHeaders(), body: JSON.stringify(body) }),
   update: (id, body) => request(`/categories/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(body) }),

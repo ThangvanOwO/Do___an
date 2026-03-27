@@ -38,7 +38,7 @@ export default function DashboardReactPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f9ff] font-display text-slate-600">
+      <div className="min-h-screen flex items-center justify-center bg-[#f9f9ff] dark:bg-background-dark font-display text-slate-600 dark:text-slate-400">
         Đang tải dashboard…
       </div>
     );
